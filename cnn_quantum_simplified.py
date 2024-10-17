@@ -110,7 +110,7 @@ class QuantumLayer(tf.keras.layers.Layer):
 
     def call(self, inputs):
 
-        if tf.executing_eagerly():
+        if tf.executing_eagerly(): #Necessary to get the tensors to numpy to work to run the quantum layer
             ansatz_inputs = inputs.numpy()
             exp_vals = tf.convert_to_tensor(quantum_layer(ansatz_inputs))
             return tf.convert_to_tensor(exp_vals)

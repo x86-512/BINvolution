@@ -132,13 +132,14 @@ class Conv_NN():
         self.train_img, self.train_lbl = self.train_img[train_filter], self.train_lbl[train_filter]
         self.test_img, self.test_lbl = self.test_img[test_filter], self.test_lbl[test_filter]
 
+    #Add an option for eager execution
     def setup(self):
         self.model.add(tf.keras.layers.Conv2D(32,(3,3), activation="relu", input_shape = (28,28,1)))
         self.model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
         self.model.add(tf.keras.layers.Conv2D(16,(3,3), activation="relu"))
         self.model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
         self.model.add(tf.keras.layers.Conv2D(4,(4,4), activation="relu"))  #It is now at 2x2x4, QCNN Layer should have 4 qubits, pool it to 2, add an int. layer and map it to the output
-        self.model.add(tf.keras.layers.Flatten())
+        self.model.add(tf.keras.layers.Flatten()) #Quantum layers need to be in a flat tensor
         
         #Alt:
         self.model.add(QuantumLayer(4,(2,2)))

@@ -188,7 +188,7 @@ class QuantumLayer(tf.keras.layers.Layer):
             #print(conv_weights[1])
             #print(len(conv_weights))
             out_list = []
-            for i in range(BATCH_SIZE): #Batch size
+            for i in range(len(inputs)): #Batch size
                 exp_vals = quantum_layer(ansatz_inputs[i], conv_weights, pool_weights)
                 #print(exp_vals)
                 out_list.append(exp_vals)

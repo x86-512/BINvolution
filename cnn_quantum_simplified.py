@@ -13,7 +13,13 @@ from qiskit.quantum_info import SparsePauliOp
 
     #Convolution
 
+BATCH_SIZE=128
+
 def encoder(inputs):
+    #print(inputs.tolist())
+
+    #print(len(inputs.tolist()))
+    #breakpoint()
     enc = QuantumCircuit(4)
     #enc.h([0,1,2,3])
     enc.h(0)
@@ -51,6 +57,8 @@ def encoder(inputs):
     return enc
 
 def convolution(kernel_weights): #Get weights as a tensor
+    #print(kernel_weights)
+    #print(len(kernel_weights))
     conv = QuantumCircuit(4)
     #This circuit uses a kernel of length 2, so 2 qubits are operated on at a time
     conv.rz(-num.pi/2,1)
@@ -146,16 +154,16 @@ def quantum_layer(inputs, weights_conv, weights_pool):
     ql.compose(convolution(ins), list(range(0,4)))
     ql.compose(pool(ins), list(range(0,4)))
     est = Estimator()
-    observable_2 = SparsePauliOp.from_list([("IIZI", 2)])
-    observable_3 = SparsePauliOp.from_list([("IIIZ", 3)])
+    observable_2 = SparsePauliOp.from_list([("IIZZ", 2)])
+    observable_3 = SparsePauliOp.from_list([("IIZZ", 3)])
     job_1 = est.run(ql, observable_2) 
     res_1 = job_1.result()
     job_2 = est.run(ql, observable_3)
     res_2 = job_2.result()
     expectation_vals = [res_1.values[0],res_2.values[0]]
-    print([res_1.values[0],res_2.values[0]])
-    #return num.array(expectation_vals)
-    return inputs
+    #print([res_1.values[0],res_2.values[0]])
+    return num.array(expectation_vals)
+    #return inputs
 
 class QuantumLayer(tf.keras.layers.Layer):
     def __init__(self, units=2, input_dim=2):
@@ -166,16 +174,35 @@ class QuantumLayer(tf.keras.layers.Layer):
     def build(self, input_shape=(1,4)):
         self.weight1 = self.add_weight(shape=(1,16), initializer="random_normal", trainable = True) #Passed into ansatz
         self.weight2 = self.add_weight(shape=(1,16), initializer="random_normal", trainable = True) #16 weights + pool
-        pass
 
     def call(self, inputs):
         #print(len([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
         #quantum_layer([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
         if tf.executing_eagerly():
+            #print(inputs.shape)
+            #breakpoint()
             ansatz_inputs = inputs.numpy()
-            exp_vals = tf.convert_to_tensor(quantum_layer(ansatz_inputs, self.weight1.numpy(), self.weight2.numpy()))
-            return tf.convert_to_tensor(exp_vals)
-        return tf.convert_to_tensor(inputs)
+            conv_weights = self.weight1.numpy()
+            pool_weights = self.weight2.numpy()
+            #Inputs and weights are batched
+            #print(conv_weights[1])
+            #print(len(conv_weights))
+            out_list = []
+            for i in range(BATCH_SIZE): #Batch size
+                exp_vals = quantum_layer(ansatz_inputs[i], conv_weights, pool_weights)
+                #print(exp_vals)
+                out_list.append(exp_vals)
+                #print(out_list)
+            #out_list = quantum_layer(ansatz_inputs, conv_weights, pool_weights)
+            out_array = num.array(out_list)
+            #print(out_array)
+            #print(len(out_array))
+            #print(tf.convert_to_tensor(out_array).shape)
+            return tf.convert_to_tensor(out_array) 
+        #128, 16
+        return tf.convert_to_tensor(num.zeros((BATCH_SIZE,2))) #Tensors need the same output size
+        #return tf.convert_to_tensor([0,0]) #you better be executing eagerly
+        
         #Flatten the tensor into 16
         #Convert the 2x2 to 4 straight, then determine which elements of the incoming feature mmap are mapped to which pixel
         #https://qiskit-community.github.io/qiskit-machine-learning/tutorials/11_quantum_convolutional_neural_networks.html Feature maps are mapped like this
@@ -203,10 +230,11 @@ class Conv_NN():
         self.model.add(tf.keras.layers.Flatten())
         
         #Alt:
-        self.model.add(QuantumLayer(4,(2,2)))
+        #self.model.add(QuantumLayer(4,(2,2)))
+        self.model.add(QuantumLayer(4,2))
         self.model.add(tf.keras.layers.Dense(2, activation="relu"))
         
-        self.model.add(tf.keras.layers.Dense(2,activation="softmax")) #Just use qiskit at the end
+        self.model.add(tf.keras.layers.Dense(2,activation="softmax"))
         #print(self.model.summary())
 
 
@@ -215,10 +243,12 @@ class Conv_NN():
         self.model.compile(optimizer=tf.keras.optimizers.Adam(), loss=loss, metrics=["accuracy"])
 
     def train(self):
-        self.model.fit(self.train_img, self.train_lbl, epochs=5, batch_size=128)
-        self.model.evaluate(self.test_img, self.test_lbl, batch_size=128, verbose=2)
+        self.model.fit(self.train_img, self.train_lbl, epochs=5, batch_size=BATCH_SIZE)
+        self.model.evaluate(self.test_img, self.test_lbl, batch_size=BATCH_SIZE, verbose=2)
 
 def main():
+
+    tf.config.run_functions_eagerly(True)
     nn = Conv_NN()
     nn.filter()
     nn.setup()

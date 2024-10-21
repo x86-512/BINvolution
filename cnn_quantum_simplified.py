@@ -150,12 +150,12 @@ def quantum_layer(inputs, weights_conv, weights_pool):
     wc = weights_conv
     wp = weights_pool
     ql = QuantumCircuit(4)
-    ql.compose(encoder(ins), list(range(0,4)))
-    ql.compose(convolution(ins), list(range(0,4)))
-    ql.compose(pool(ins), list(range(0,4)))
+    ql.compose(encoder(ins), list(range(0,4)), inplace=True) #Inplace increases time
+    ql.compose(convolution(ins), list(range(0,4)), inplace=True)
+    ql.compose(pool(ins), list(range(0,4)), inplace=True)
     est = Estimator()
-    observable_2 = SparsePauliOp.from_list([("IIZZ", 2)])
-    observable_3 = SparsePauliOp.from_list([("IIZZ", 3)])
+    observable_2 = SparsePauliOp.from_list([("IIXX", 1)]) #These cause HUGE loss, I'm pretty sure, I did trial and error
+    observable_3 = SparsePauliOp.from_list([("IIXX", 1)])
     job_1 = est.run(ql, observable_2) 
     res_1 = job_1.result()
     job_2 = est.run(ql, observable_3)

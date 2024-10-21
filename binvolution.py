@@ -7,58 +7,22 @@ from qiskit.circuit.library import ZGate
 
 from qiskit.quantum_info import SparsePauliOp
 
-#Issues: Convert to Tensorflow tensor, expectation value
-    #Put inputs into a parametervector and 
-    #DO not use ZFeatureMap, manually map the inputs
-
-    #Convolution
-
 BATCH_SIZE=128
 
 def encoder(inputs):
-    #print(inputs.tolist())
-
-    #print(len(inputs.tolist()))
-    #breakpoint()
     enc = QuantumCircuit(4)
-    #enc.h([0,1,2,3])
-    enc.h(0)
-    enc.h(1)
-    enc.h(2)
-    enc.h(3)
-    enc.p(inputs[0],0)
-    enc.p(inputs[1],1)
-    enc.p(inputs[2],2)
-    enc.p(inputs[3],3)
-    enc.h(0)
-    enc.h(1)
-    enc.h(2)
-    enc.h(3)
-    enc.p(inputs[4],0)
-    enc.p(inputs[5],1)
-    enc.p(inputs[6],2)
-    enc.p(inputs[7],3)
-    enc.h(0)
-    enc.h(1)
-    enc.h(2)
-    enc.h(3)
-    enc.p(inputs[8],0)
-    enc.p(inputs[9],1)
-    enc.p(inputs[10],2)
-    enc.p(inputs[11],3)
-    enc.h(0)
-    enc.h(1)
-    enc.h(2)
-    enc.h(3)
-    enc.p(inputs[12],0)
-    enc.p(inputs[13],1)
-    enc.p(inputs[14],2)
-    enc.p(inputs[15],3)
+    for i in range(4):
+        enc.h(i)
+        enc.p(inputs[i],i)
+        enc.h(i)
+        enc.p(inputs[i+4],i)
+        enc.h(i)
+        enc.p(inputs[i+8],i)
+        enc.h(i)
+        enc.p(inputs[i+12],i)
     return enc
 
 def convolution(kernel_weights): #Get weights as a tensor
-    #print(kernel_weights)
-    #print(len(kernel_weights))
     conv = QuantumCircuit(4)
     #This circuit uses a kernel of length 2, so 2 qubits are operated on at a time
     conv.rz(-num.pi/2,1)
@@ -145,7 +109,6 @@ def pool(pool_weights):
     return pool
 
 def quantum_layer(inputs, weights_conv, weights_pool):
-    #
     ins = inputs
     wc = weights_conv
     wp = weights_pool
@@ -154,16 +117,14 @@ def quantum_layer(inputs, weights_conv, weights_pool):
     ql.compose(convolution(ins), list(range(0,4)), inplace=True)
     ql.compose(pool(ins), list(range(0,4)), inplace=True)
     est = Estimator()
-    observable_2 = SparsePauliOp.from_list([("IIXX", 1)]) #These cause HUGE loss, I'm pretty sure, I did trial and error
+    observable_2 = SparsePauliOp.from_list([("IIXX", 1)]) #These cause LOTS of loss
     observable_3 = SparsePauliOp.from_list([("IIXX", 1)])
     job_1 = est.run(ql, observable_2) 
     res_1 = job_1.result()
     job_2 = est.run(ql, observable_3)
     res_2 = job_2.result()
     expectation_vals = [res_1.values[0],res_2.values[0]]
-    #print([res_1.values[0],res_2.values[0]])
     return num.array(expectation_vals)
-    #return inputs
 
 class QuantumLayer(tf.keras.layers.Layer):
     def __init__(self, units=2, input_dim=2):
@@ -176,36 +137,17 @@ class QuantumLayer(tf.keras.layers.Layer):
         self.weight2 = self.add_weight(shape=(1,16), initializer="random_normal", trainable = True) #16 weights + pool
 
     def call(self, inputs):
-        #print(len([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
-        #quantum_layer([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
         if tf.executing_eagerly():
-            #print(inputs.shape)
-            #breakpoint()
             ansatz_inputs = inputs.numpy()
             conv_weights = self.weight1.numpy()
             pool_weights = self.weight2.numpy()
-            #Inputs and weights are batched
-            #print(conv_weights[1])
-            #print(len(conv_weights))
             out_list = []
             for i in range(len(inputs)): #Batch size
                 exp_vals = quantum_layer(ansatz_inputs[i], conv_weights, pool_weights)
-                #print(exp_vals)
                 out_list.append(exp_vals)
-                #print(out_list)
-            #out_list = quantum_layer(ansatz_inputs, conv_weights, pool_weights)
             out_array = num.array(out_list)
-            #print(out_array)
-            #print(len(out_array))
-            #print(tf.convert_to_tensor(out_array).shape)
-            return tf.convert_to_tensor(out_array) 
-        #128, 16
-        return tf.convert_to_tensor(num.zeros((BATCH_SIZE,2))) #Tensors need the same output size
-        #return tf.convert_to_tensor([0,0]) #you better be executing eagerly
-        
-        #Flatten the tensor into 16
-        #Convert the 2x2 to 4 straight, then determine which elements of the incoming feature mmap are mapped to which pixel
-        #https://qiskit-community.github.io/qiskit-machine-learning/tutorials/11_quantum_convolutional_neural_networks.html Feature maps are mapped like this
+            return tf.convert_to_tensor(out_array)
+        return tf.convert_to_tensor(num.zeros((BATCH_SIZE,2))) #Same output size regardlesss of return
 
 
 class Conv_NN():
@@ -213,7 +155,6 @@ class Conv_NN():
         self.model = tf.keras.models.Sequential()
         mnist = tf.keras.datasets.mnist
         (self.train_img, self.train_lbl), (self.test_img, self.test_lbl) = mnist.load_data()
-        #tf.enable_eager_execution()
 
     def filter(self):
         train_filter = num.where((self.train_lbl==0)|(self.train_lbl==1))
@@ -229,25 +170,21 @@ class Conv_NN():
         self.model.add(tf.keras.layers.Conv2D(4,(4,4), activation="relu"))  #It is now at 2x2x4, QCNN Layer should have 4 qubits, pool it to 2, add an int. layer and map it to the output
         self.model.add(tf.keras.layers.Flatten())
         
-        #Alt:
-        #self.model.add(QuantumLayer(4,(2,2)))
         self.model.add(QuantumLayer(4,2))
         self.model.add(tf.keras.layers.Dense(2, activation="relu"))
         
         self.model.add(tf.keras.layers.Dense(2,activation="softmax"))
         #print(self.model.summary())
 
-
     def compile(self):
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        self.model.compile(optimizer=tf.keras.optimizers.Adam(), loss=loss, metrics=["accuracy"])
+        self.model.compile(optimizer=tf.keras.optimizers.Adam(), loss=loss, metrics=["accuracy"]) #Backpropogation slows down due to barren plateaus, it barely increases throughout the 1st epoch
 
     def train(self):
         self.model.fit(self.train_img, self.train_lbl, epochs=5, batch_size=BATCH_SIZE)
         self.model.evaluate(self.test_img, self.test_lbl, batch_size=BATCH_SIZE, verbose=2)
 
 def main():
-
     tf.config.run_functions_eagerly(True)
     nn = Conv_NN()
     nn.filter()

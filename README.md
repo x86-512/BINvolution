@@ -1,5 +1,5 @@
 # QCNN
-This is a project that is written in qiskit to make a classical-hybrid quantum convolutional neural network trained on a subset of the MNIST dataset.
+This is a project that is written in Qiskit to make a classical-hybrid quantum convolutional neural network trained on a subset of the MNIST dataset.
 This project was my attempt to write a Classical-Hybrid Quantum (CQ) Convolutional Neural Network.
 
 The accuracy, training time, and running time are really bad (as expected) due to Barren Plateaus, unoptimized parameters, and suboptimal observables for the network.

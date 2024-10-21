@@ -1,0 +1,36 @@
+//A qiskit generation of the pooling layer in the first epoch
+
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[4] q;
+rz(-pi/2) q[1];
+cx q[1], q[0];
+rz(20.07637596130371) q[0];
+ry(7.438701152801514) q[1];
+cx q[0], q[1];
+rz(0) q[0];
+ry(0) q[1];
+barrier q[0], q[1], q[2], q[3];
+rz(-pi/2) q[3];
+cx q[3], q[2];
+rz(15.57990550994873) q[2];
+ry(31.39777946472168) q[3];
+cx q[2], q[3];
+rz(4.135446548461914) q[2];
+ry(0) q[3];
+barrier q[0], q[1], q[2], q[3];
+rz(-pi/2) q[2];
+cx q[2], q[1];
+rz(0) q[1];
+ry(23.68154525756836) q[2];
+cx q[1], q[2];
+rz(20.960039138793945) q[1];
+ry(0) q[2];
+barrier q[0], q[1], q[2], q[3];
+rz(-pi/2) q[3];
+cx q[3], q[0];
+rz(3.466412305831909) q[0];
+ry(21.176597595214844) q[3];
+cx q[0], q[3];
+rz(0) q[0];
+ry(0) q[3];

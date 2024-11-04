@@ -7,7 +7,7 @@ from qiskit.circuit.library import ZGate
 
 from qiskit.quantum_info import SparsePauliOp
 
-BATCH_SIZE=128
+BATCH_SIZE=128 #May downgrade to 64
 
 def encoder(inputs):
     enc = QuantumCircuit(4)

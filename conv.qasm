@@ -1,4 +1,5 @@
 //A generation of the convolution layer in qasm in the first epoch
+//Replace to add inputs
 
 OPENQASM 3.0;
 include "stdgates.inc";

@@ -178,8 +178,9 @@ class Conv_NN():
 
     def compile(self):
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        self.model.compile(optimizer=tf.keras.optimizers.Adam(), loss=loss, metrics=["accuracy"]) #Backpropogation slows down due to barren plateaus, it barely increases throughout the 1st epoch
-
+        self.model.compile(optimizer=tf.keras.optimizers.Adam(), loss=loss, metrics=["accuracy"]) #Backpropagation slows down due to barren plateaus, it barely increases throughout the 1st epoch
+        #Adam optimizer may not be best for this. I haave not yet tried any other optimizers
+    
     def train(self):
         self.model.fit(self.train_img, self.train_lbl, epochs=5, batch_size=BATCH_SIZE)
         self.model.evaluate(self.test_img, self.test_lbl, batch_size=BATCH_SIZE, verbose=2)
